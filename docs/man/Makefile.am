@@ -47,10 +47,12 @@ HTML_CONF_MANS = \
 
 SRC_CLIENT_PAGES = \
 	nutupsdrv.txt \
+	nut-driver-enumerator.txt \
 	upsc.txt \
 	upscmd.txt \
 	upsd.txt \
 	upsdrvctl.txt \
+	upsdrvsvcctl.txt \
 	upslog.txt \
 	upsmon.txt \
 	upsrw.txt \
@@ -59,10 +61,12 @@ SRC_CLIENT_PAGES = \
 if WITH_MANS
 MAN_CLIENT_PAGES = \
 	nutupsdrv.8 \
+	nut-driver-enumerator.8 \
 	upsc.8 \
 	upscmd.8 \
 	upsd.8 \
 	upsdrvctl.8 \
+	upsdrvsvcctl.8 \
 	upslog.8 \
 	upsmon.8 \
 	upsrw.8 \
@@ -73,10 +77,12 @@ man8_MANS = $(MAN_CLIENT_PAGES)
 
 HTML_CLIENT_MANS = \
 	nutupsdrv.html \
+	nut-driver-enumerator.html \
 	upsc.html \
 	upscmd.html \
 	upsd.html \
 	upsdrvctl.html \
+	upsdrvsvcctl.html \
 	upslog.html \
 	upsmon.html \
 	upsrw.html \
@@ -176,6 +182,15 @@ SRC_DEV_PAGES = \
 
 if WITH_MANS
 # NOTE: nutclient_*.3 has no source counterpart (libnutclient_*.txt)
+
+LIBNUTCLIENT_MISC_DEPS= \
+	nutclient_authenticate.3 \
+	nutclient_logout.3 \
+	nutclient_device_login.3 \
+	nutclient_get_device_num_logins.3 \
+	nutclient_device_master.3 \
+	nutclient_device_forced_shutdown.3
+
 MAN3_DEV_PAGES = \
 	upsclient.3 \
 	upscli_add_host_cert.3 \
@@ -201,16 +216,12 @@ MAN3_DEV_PAGES = \
 	libnutclient_misc.3 \
 	libnutclient_tcp.3 \
 	libnutclient_variables.3 \
-	nutclient_authenticate.3 \
+	$(LIBNUTCLIENT_MISC_DEPS) \
 	nutclient_destroy.3 \
-	nutclient_device_forced_shutdown.3 \
-	nutclient_device_login.3 \
-	nutclient_device_master.3 \
 	nutclient_execute_device_command.3 \
 	nutclient_get_device_command_description.3 \
 	nutclient_get_device_commands.3 \
 	nutclient_get_device_description.3 \
-	nutclient_get_device_num_logins.3 \
 	nutclient_get_device_rw_variables.3 \
 	nutclient_get_devices.3 \
 	nutclient_get_device_variable_description.3 \
@@ -219,7 +230,6 @@ MAN3_DEV_PAGES = \
 	nutclient_has_device.3 \
 	nutclient_has_device_command.3 \
 	nutclient_has_device_variable.3 \
-	nutclient_logout.3 \
 	nutclient_set_device_variable_value.3 \
 	nutclient_set_device_variable_values.3 \
 	nutclient_tcp_create_client.3 \
@@ -245,6 +255,9 @@ MAN3_DEV_PAGES = \
 	nutscan_add_device_to_device.3 \
 	nutscan_get_serial_ports_list.3 \
 	nutscan_init.3
+
+$(LIBNUTCLIENT_MISC_DEPS): libnutclient_misc.3
+	touch $@
 
 MAN1_DEV_PAGES = \
 	libupsclient-config.1
@@ -343,7 +356,6 @@ SRC_SERIAL_PAGES = \
 	mge-utalk.txt	\
 	oneac.txt		\
 	microdowell.txt	\
-	nutdrv_qx.txt	\
 	optiups.txt	\
 	powercom.txt 	\
 	powerpanel.txt	\
@@ -384,7 +396,6 @@ MAN_SERIAL_PAGES = \
 	metasys.8	\
 	mge-shut.8	\
 	mge-utalk.8	\
-	nutdrv_qx.8	\
 	oneac.8		\
 	microdowell.8	\
 	optiups.8	\
@@ -431,7 +442,6 @@ HTML_SERIAL_MANS = \
 	metasys.html	\
 	mge-shut.html	\
 	mge-utalk.html	\
-	nutdrv_qx.html	\
 	oneac.html		\
 	microdowell.html	\
 	optiups.html	\
@@ -479,7 +489,6 @@ SRC_USB_LIBUSB_PAGES = \
 	blazer-common.txt	\
 	blazer_usb.txt	\
 	nutdrv_atcl_usb.txt \
-	nutdrv_qx.txt	\
 	richcomm_usb.txt \
 	riello_usb.txt	\
 	tripplite_usb.txt \
@@ -490,7 +499,6 @@ MAN_USB_LIBUSB_PAGES = \
 	bcmxcp_usb.8 \
 	blazer_usb.8 \
 	nutdrv_atcl_usb.8 \
-	nutdrv_qx.8	\
 	richcomm_usb.8 \
 	riello_usb.8	\
 	tripplite_usb.8 \
@@ -504,12 +512,31 @@ endif
 HTML_USB_LIBUSB_MANS = \
 	bcmxcp_usb.html \
 	blazer_usb.html	\
-	nutdrv_qx.html	\
 	nutdrv_atcl_usb.html \
 	richcomm_usb.html \
 	riello_usb.html	\
 	tripplite_usb.html \
 	usbhid-ups.html
+
+# (--with-serial / --with-usb)
+SRC_SERIAL_USB_PAGES = \
+	nutdrv_qx.txt
+
+if WITH_MANS
+MAN_SERIAL_USB_PAGES = \
+	nutdrv_qx.8
+endif
+
+if WITH_SERIAL
+ man8_MANS += $(MAN_SERIAL_USB_PAGES)
+else
+if WITH_USB
+ man8_MANS += $(MAN_SERIAL_USB_PAGES)
+endif
+endif
+
+HTML_SERIAL_USB_MANS = \
+	nutdrv_qx.html
 
 # (--with-neon)
 SRC_NETXML_PAGES = netxml-ups.txt
@@ -575,7 +602,7 @@ MAN_LINUX_I2C_PAGES = asem.8
 endif
 
 if WITH_LINUX_I2C
-   man8_MANS += $(LINUX_I2C_PAGES)
+   man8_MANS += $(MAN_LINUX_I2C_PAGES)
 endif
 
 HTML_LINUX_I2C_MANS = asem.html
@@ -597,6 +624,7 @@ MAN_MANS += \
 	$(MAN_SNMP_PAGES) \
 	$(MAN_SNMP_DMF_PAGES) \
 	$(MAN_USB_LIBUSB_PAGES) \
+	$(MAN_SERIAL_USB_PAGES) \
 	$(MAN_NETXML_PAGES) \
 	$(MAN_POWERMAN_PAGES) \
 	$(MAN_IPMIPSU_PAGES) \
@@ -617,6 +645,7 @@ SRC_ALL_PAGES = \
 	$(SRC_SNMP_PAGES) \
 	$(SRC_SNMP_DMF_PAGES) \
 	$(SRC_USB_LIBUSB_PAGES) \
+	$(SRC_SERIAL_USB_PAGES) \
 	$(SRC_NETXML_PAGES) \
 	$(SRC_POWERMAN_PAGES) \
 	$(SRC_IPMIPSU_PAGES) \
@@ -657,6 +686,7 @@ HTML_MANS = \
 	$(HTML_SNMP_MANS) \
 	$(HTML_SNMP_DMF_MANS) \
 	$(HTML_USB_LIBUSB_MANS) \
+	$(HTML_SERIAL_USB_MANS) \
 	$(HTML_NETXML_MANS) \
 	$(HTML_POWERMAN_MANS) \
 	$(HTML_IPMIPSU_MANS) \

@@ -187,7 +187,18 @@ default|default-alldrv|default-spellcheck|default-nodoc|default-withdoc|"default
     [ -z "$CI_TIME" ] || echo "`date`: Starting build of currently tested project..."
     CCACHE_BASEDIR=${PWD}
     export CCACHE_BASEDIR
+
+    # Note: modern auto(re)conf requires pkg-config to generate the configure
+    # script, so to stage the situation of building without one (as if on an
+    # older system) we have to remove it when we already have the script.
+    # This matches the use-case of distro-building from release tarballs that
+    # include all needed pre-generated files to rely less on OS facilities.
     $CI_TIME ./autogen.sh 2> /dev/null
+    if [ "$NO_PKG_CONFIG" == "true" ] ; then
+        echo "NO_PKG_CONFIG==true : BUTCHER pkg-config for this test case" >&2
+        sudo dpkg -r --force all pkg-config
+    fi
+
     $CI_TIME ./configure "${CONFIG_OPTS[@]}"
 
     case "$BUILD_TYPE" in
@@ -201,6 +212,7 @@ default|default-alldrv|default-spellcheck|default-nodoc|default-withdoc|"default
             echo "==="
             if git status -s | egrep '\.dmf$' ; then
                 echo "FATAL: There are changes in DMF files listed above - tracked sources should be updated!" >&2
+                git diff -- '*.dmf'
                 exit 1
             fi
             if [ "$HAVE_CCACHE" = yes ]; then
@@ -229,6 +241,7 @@ default|default-alldrv|default-spellcheck|default-nodoc|default-withdoc|"default
     echo "==="
     if git status -s | egrep '\.dmf$' ; then
         echo "FATAL: There are changes in DMF files listed above - tracked sources should be updated!" >&2
+        git diff -- '*.dmf'
         exit 1
     fi
 
@@ -250,6 +263,7 @@ default|default-alldrv|default-spellcheck|default-nodoc|default-withdoc|"default
         echo "==="
         if git status -s | egrep '\.dmf$' ; then
             echo "FATAL: There are changes in DMF files listed above - tracked sources should be updated!" >&2
+            git diff -- '*.dmf'
             exit 1
         fi
         )

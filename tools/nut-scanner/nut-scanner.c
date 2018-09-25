@@ -34,6 +34,7 @@
 #include <string.h>
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
+#include <semaphore.h>
 #endif
 
 #include "nut-scan.h"
@@ -70,11 +71,12 @@
 #define ERR_BAD_OPTION	(-1)
 
 // TODO : #if WITH_DMFMIB for options to set up path(s) to the DMFs to load
-const char optstring[] = "?ht:s:e:E:c:l:u:W:X:w:x:p:b:B:d:L:CUSMOAm:NPqIVaDzZ:";
+const char optstring[] = "?ht:T:s:e:E:c:l:u:W:X:w:x:p:b:B:d:L:CUSMOAm:NPqIVaDzZ:";
 
 #ifdef HAVE_GETOPT_LONG
 const struct option longopts[] =
 	{{ "timeout",required_argument,NULL,'t' },
+	{ "thread", required_argument, NULL, 'T' },
 	{ "start_ip",required_argument,NULL,'s' },
 	{ "end_ip",required_argument,NULL,'e' },
 	{ "eaton_serial",required_argument,NULL,'E' },
@@ -115,6 +117,7 @@ const struct option longopts[] =
 static nutscan_device_t *dev[TYPE_END];
 
 static long timeout = DEFAULT_TIMEOUT*1000*1000; /* in usec */
+static long thread_number = DEFAULT_THREAD;
 static char * start_ip = NULL;
 static char * end_ip = NULL;
 static char * port = NULL;
@@ -210,7 +213,9 @@ void show_usage()
 	}
 
 	printf("  -E, --eaton_serial <serial ports list>: Scan serial Eaton devices (XCP, SHUT and Q1).\n");
-
+#ifdef HAVE_PTHREAD
+	printf("  -T, --thread <max number of threads>: max number of simultaneous threads (default %d).\n", DEFAULT_THREAD);
+#endif
 	printf("\nNetwork specific options:\n");
 	printf("  -t, --timeout <timeout in seconds>: network operation timeout (default %d).\n",DEFAULT_TIMEOUT);
 	printf("  -s, --start_ip <IP address>: First IP address to scan.\n");
@@ -289,10 +294,22 @@ int main(int argc, char *argv[])
 	xml_sec.usec_timeout = -1; /* Override with the "timeout" common setting later */
 	xml_sec.peername = NULL;
 
+	/* Parse command line options -- First loop: only get debug level */
+	/* Suppress error messages, for now -- leave them to the second loop. */
+	opterr = 0;
+	while((opt_ret = getopt_long(argc, argv, optstring, longopts, NULL)) != -1)
+		if (opt_ret == 'D')
+			nut_debug_level++;
+
 	nutscan_init();
 
 	display_func = nutscan_display_ups_conf;
 
+	/* Parse command line options -- Second loop: everything else */
+	/* Restore error messages... */
+	opterr = 1;
+	/* ...and index of the item to be processed by getopt(). */
+	optind = 1;
 	/* Note: the getopts print an error message about unknown arguments
 	 * or arguments which need a second token and that is missing now */
 	while((opt_ret = getopt_long(argc, argv, optstring, longopts, NULL))!=-1) {
@@ -304,6 +321,16 @@ int main(int argc, char *argv[])
 					fprintf(stderr,"Illegal timeout value, using default %ds\n", DEFAULT_TIMEOUT);
 					timeout = DEFAULT_TIMEOUT*1000*1000;
 				}
+				break;
+			case 'T' : ;
+#ifdef HAVE_PTHREAD
+				char* endptr;
+				thread_number = strtol(optarg, &endptr, 10);
+				if (!*endptr || thread_number <= 0) {
+					fprintf(stderr, "Illegal thread number, using default %d\n", DEFAULT_THREAD);
+					thread_number = DEFAULT_THREAD;
+				}
+#endif
 				break;
 			case 's':
 				start_ip = strdup(optarg);
@@ -347,7 +374,7 @@ int main(int argc, char *argv[])
 #endif /* WITH_DMFMIB */
 
 			case 'D':
-				nut_debug_level++;
+				/* nothing to do, here */
 				break;
 			case 'c':
 				if(!nutscan_avail_snmp) {
@@ -518,6 +545,15 @@ display_help:
 				return ret_code;
 		}
 	}
+
+#ifdef HAVE_PTHREAD
+	/* FIXME: Currently sem_init already done on nutscan-init for lib need.
+	   We need to destroy it before re-init. We currently can't change "sem value"
+	   on lib (need to be thread safe). */
+	sem_t *current_sem = nutscan_semaphore();
+	sem_destroy(current_sem);
+	sem_init(current_sem, 0, thread_number);
+#endif
 
 	if( cidr ) {
 		nutscan_cidr_to_ip(cidr, &start_ip, &end_ip);
